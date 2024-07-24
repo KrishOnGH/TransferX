@@ -9,9 +9,9 @@ def run_process():
     if len(sys.argv) > 1:
         file_path = sys.argv[1]
         result = process_file(file_path)
-        result_label.config(text=result)
+        result_label.configure(text=result)
     else:
-        result_label.config(text="No file path provided.")
+        result_label.configure(text="No file path provided.")
 
 # Set up the GUI
 app = ctk.CTk()
