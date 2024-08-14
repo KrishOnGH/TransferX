@@ -1,0 +1,1 @@
+This is an example file to test the sender.py and receiver.py.
