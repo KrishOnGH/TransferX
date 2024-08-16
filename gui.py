@@ -13,31 +13,43 @@ def run_process():
             UUID = random.randint(100000, 999999)
             status = send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path)
 
+            file_selected_label.destroy()
+            button.destroy()           
+            header.place(relx=0.5, rely=0.475, anchor='center')
+            result_label.place(relx=0.5, rely=0.525, anchor='center')     
+
             if status['message'] == "error":
                 result_label.configure(text="Error")
             else:
                 result_label.configure(text=f"UUID: {UUID}")
 
         elif os.path.isdir(file_path):
+            header.place(relx=0.5, rely=0.4, anchor='center')
+            file_selected_label.destroy()
+            button.destroy()
+
             add_uuid_input()
-    
+
         else:
             file_selected_label.configure(text="The provided path is neither a file nor a folder.")
 
 def add_uuid_input():
-    uuid_label.pack(pady=10)
-    uuid_entry.pack(pady=10)
-    receive_button.pack(pady=10)
+    uuid_label.place(relx=0.5, rely=0.4, anchor='center', y=30)
+    uuid_entry.place(relx=0.5, rely=0.4, anchor='center', y=60)
+    receive_button.place(relx=0.5, rely=0.4, anchor='center', y=90)
 
 def receive_process():
     file_path = sys.argv[1]
     UUID = uuid_entry.get()
     status = receive_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path)
 
+    uuid_label.destroy()
+    uuid_entry.destroy()
+    receive_button.destroy()
+    header.place(relx=0.5, rely=0.475, anchor='center')
+    result_label.place(relx=0.5, rely=0.525, anchor='center')
+    
     if status['message'] == 'error':
-        uuid_label.pack_forget()
-        uuid_entry.pack_forget()
-        receive_button.pack_forget()
         result_label.configure(text=f"{status['details']}")
     else:
         result_label.configure(text="Success")
@@ -45,21 +57,24 @@ def receive_process():
 # Set up the GUI
 app = ctk.CTk()
 app.title("TransferX")
-app.geometry("400x300")
+app.after(0, lambda: app.state('zoomed'))
 
-header = ctk.CTkLabel(app, text="TransferX")
-header.pack(pady=10)
+header_font = ("Arial", 24, "bold")
+default_font = ("Arial", 16)
 
-file_selected_label = ctk.CTkLabel(app, text="Nothing selected")
-file_selected_label.pack(pady=10)
+header = ctk.CTkLabel(app, text="TransferX", font=header_font)
+header.place(relx=0.5, rely=0.4, anchor='center')
+
+file_selected_label = ctk.CTkLabel(app, text="Nothing selected", font=default_font)
+file_selected_label.place(relx=0.5, rely=0.45, anchor='center')
 
 button = ctk.CTkButton(app, text="Continue", command=run_process)
-button.pack(pady=20)
+button.place(relx=0.5, rely=0.5, anchor='center')
 
-result_label = ctk.CTkLabel(app, text="")
-result_label.pack(pady=20)
+result_label = ctk.CTkLabel(app, text="", font=default_font)
+result_label.place(relx=0.5, rely=0.55, anchor='center')
 
-uuid_label = ctk.CTkLabel(app, text="Receive File - Enter UUID:")
+uuid_label = ctk.CTkLabel(app, text="Receive File - Enter UUID:", font=default_font)
 uuid_entry = ctk.CTkEntry(app, placeholder_text="Enter UUID")
 receive_button = ctk.CTkButton(app, text="Receive", command=receive_process)
 
