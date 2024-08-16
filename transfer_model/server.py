@@ -25,9 +25,10 @@ def handle_client(client_socket):
     try:
         client_socket.sendall(b'ACK')
         received_uuid = client_socket.recv(BUFFER_SIZE).decode()
+        client_socket.sendall(b'ACK')
 
         if received_uuid in UUIDS:
-            file_name = UUIDS[received_uuid]
+            file_name = UUIDS[received_uuid]['Filename']
             temp_file_path = os.path.join(TEMP_FOLDER, file_name)
 
             if os.path.exists(temp_file_path):
@@ -45,9 +46,10 @@ def handle_client(client_socket):
                 client_socket.recv(BUFFER_SIZE) # Wait for acknowledgement
 
                 # Remove the temporary file after sending
-                os.remove(temp_file_path)
-                del UUIDS[received_uuid]
-                save_uuids(UUIDS)
+                if UUIDS[received_uuid]['Permanent'] == "False":
+                    os.remove(temp_file_path)
+                    del UUIDS[received_uuid]
+                    save_uuids(UUIDS)
             else:
                 client_socket.sendall(b'File not found')
         else:
@@ -60,10 +62,14 @@ def handle_sender(client_socket):
     try:
         client_socket.sendall(b'ACK')
         sender_uuid = client_socket.recv(BUFFER_SIZE).decode()
+        client_socket.sendall(b'ACK')
         file_name = client_socket.recv(BUFFER_SIZE).decode()
+        client_socket.sendall(b'ACK')
         file_size = client_socket.recv(BUFFER_SIZE).decode()
+        client_socket.sendall(b'ACK')
+        permanent = client_socket.recv(BUFFER_SIZE).decode()
 
-        UUIDS[sender_uuid] = file_name
+        UUIDS[sender_uuid] = {'Filename': file_name, 'Permanent': permanent}
         save_uuids(UUIDS)
 
         temp_file_path = os.path.join(TEMP_FOLDER, file_name)
@@ -86,6 +92,7 @@ def handle_sender(client_socket):
         file.close()
     
         client_socket.sendall(b'File received')
+
     finally:
         print(f"Received file {file_name} from sender with UUID {sender_uuid}")
         client_socket.close()
@@ -104,7 +111,7 @@ if __name__ == "__main__":
             client_type = client_socket.recv(BUFFER_SIZE).decode()
 
             if client_type == 'sender':
-                handle_sender(client_socket)
+                threading.Thread(target=handle_sender, args=(client_socket,)).start()
             elif client_type == 'receiver':
                 threading.Thread(target=handle_client, args=(client_socket,)).start()
             else:

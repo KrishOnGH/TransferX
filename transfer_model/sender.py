@@ -7,7 +7,7 @@ BUFFER_SIZE = 4096
 IP = '127.0.0.1'
 SERVER_PORT = 65432
 
-def send_file(Server, UUID, file_path):
+def send_file(Server, UUID, file_path, permanent):
     if not os.path.isfile(file_path):
         return({"message": "error"})
     else:
@@ -21,9 +21,16 @@ def send_file(Server, UUID, file_path):
         s.recv(BUFFER_SIZE)  # Wait for acknowledgment
 
         s.sendall(str(UUID).encode())
+        s.recv(BUFFER_SIZE)  # Wait for acknowledgment
+
         s.sendall(file_name.encode())
+        s.recv(BUFFER_SIZE)  # Wait for acknowledgment
+
         s.sendall(str(file_size).encode())
-        
+        s.recv(BUFFER_SIZE)  # Wait for acknowledgment
+
+        s.sendall(str(permanent).encode())
+
         response = s.recv(BUFFER_SIZE).decode()
         if response == 'Ready for file':
             with open(file_path, 'rb') as file:
@@ -38,8 +45,3 @@ def send_file(Server, UUID, file_path):
             return({"message": "success"})
         else:
             return({"message": "error"})
-
-if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(script_dir, 'folder', 'file.txt')
-    print(send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path))

@@ -11,10 +11,12 @@ def run_process():
 
         if os.path.isfile(file_path):
             UUID = random.randint(100000, 999999)
-            status = send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path)
+            is_permanent_value = "True" if is_permanent_var.get() else "False"
+            status = send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path, is_permanent_value)
 
             file_selected_label.destroy()
             button.destroy()           
+            is_permanent_checkbox.destroy()
             header.place(relx=0.5, rely=0.475, anchor='center')
             result_label.place(relx=0.5, rely=0.525, anchor='center')     
 
@@ -41,6 +43,8 @@ def add_uuid_input():
 def receive_process():
     file_path = sys.argv[1]
     UUID = uuid_entry.get()
+    if len(UUID) == 0:
+        return
     status = receive_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path)
 
     uuid_label.destroy()
@@ -68,8 +72,12 @@ header.place(relx=0.5, rely=0.4, anchor='center')
 file_selected_label = ctk.CTkLabel(app, text="Nothing selected", font=default_font)
 file_selected_label.place(relx=0.5, rely=0.45, anchor='center')
 
+is_permanent_var = ctk.BooleanVar(value=False)
+is_permanent_checkbox = ctk.CTkCheckBox(app, text="Is Permanent", variable=is_permanent_var, font=default_font)
+is_permanent_checkbox.place(relx=0.5, rely=0.5, anchor='center')
+
 button = ctk.CTkButton(app, text="Continue", command=run_process)
-button.place(relx=0.5, rely=0.5, anchor='center')
+button.place(relx=0.5, rely=0.55, anchor='center')
 
 result_label = ctk.CTkLabel(app, text="", font=default_font)
 result_label.place(relx=0.5, rely=0.55, anchor='center')
@@ -87,6 +95,8 @@ if len(sys.argv) > 1:
         file_selected_label.configure(text=f"{os.path.basename(file_path)} is selected")
 
     elif os.path.isdir(file_path):
+        is_permanent_checkbox.destroy()
+        button.place(relx=0.5, rely=0.5, anchor='center')
         header.configure(text="Receive File")
         file_selected_label.configure(text=f"{os.path.basename(file_path)} is selected")
 

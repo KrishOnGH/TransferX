@@ -15,8 +15,8 @@ def receive_file(Server, UUID, folder_path):
         s.recv(BUFFER_SIZE)  # Wait for acknowledgment
 
         s.sendall(str(UUID).encode())
-        s.sendall(b'Ready for file')
-        
+        s.recv(BUFFER_SIZE)  # Wait for acknowledgment
+
         response = s.recv(BUFFER_SIZE).decode()
         if response != 'UUID not found' and response != 'File not found':
             file_name = response
