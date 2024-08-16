@@ -23,29 +23,29 @@ UUIDS = load_uuids()
 
 def handle_client(client_socket):
     try:
-        print("Receiver client connected")
         client_socket.sendall(b'ACK')
         received_uuid = client_socket.recv(BUFFER_SIZE).decode()
-        print(f"Received UUID: {received_uuid}")
 
         if received_uuid in UUIDS:
             file_name = UUIDS[received_uuid]
             temp_file_path = os.path.join(TEMP_FOLDER, file_name)
-            
+
             if os.path.exists(temp_file_path):
                 client_socket.sendall(file_name.encode())
                 client_socket.recv(BUFFER_SIZE)  # Wait for acknowledgment
-                
-                print(f"Sending file {file_name}")
+
                 with open(temp_file_path, 'rb') as file:
-                    while chunk := file.read(BUFFER_SIZE):
-                        client_socket.sendall(chunk)
-                client_socket.sendall(b'EOF')  # Send EOF marker
-                print(f"Sent file {file_name}")
-                
+                    while True:
+                        bytes_read = file.read(BUFFER_SIZE)
+                        if not bytes_read:
+                            break
+                        client_socket.sendall(bytes_read)
+                client_socket.sendall(b'<EOF>')
+
+                client_socket.recv(BUFFER_SIZE) # Wait for acknowledgement
+
                 # Remove the temporary file after sending
                 os.remove(temp_file_path)
-                print(f"Removed temporary file {temp_file_path}")
                 del UUIDS[received_uuid]
                 save_uuids(UUIDS)
             else:
@@ -53,43 +53,46 @@ def handle_client(client_socket):
         else:
             client_socket.sendall(b'UUID not found')
     finally:
+        print(f"Sent file {file_name} to receiver with UUID {received_uuid}")
         client_socket.close()
-        print("Receiver client disconnected")
 
 def handle_sender(client_socket):
     try:
-        print("Sender client connected")
         client_socket.sendall(b'ACK')
         sender_uuid = client_socket.recv(BUFFER_SIZE).decode()
-        print(f"Received sender UUID: {sender_uuid}")
         file_name = client_socket.recv(BUFFER_SIZE).decode()
-        print(f"Received file name: {file_name}")
+        file_size = client_socket.recv(BUFFER_SIZE).decode()
 
         UUIDS[sender_uuid] = file_name
         save_uuids(UUIDS)
-        
+
         temp_file_path = os.path.join(TEMP_FOLDER, file_name)
-        
+
         client_socket.sendall(b'Ready for file')
+
+        file = open(temp_file_path, "wb")
+        file_bytes = b''
+        done = False
+
+        while not done:
+            data = client_socket.recv(BUFFER_SIZE)
+            file_bytes += data
+
+            if file_bytes[-5:] == b'<EOF>':
+                done = True
+                file_bytes = file_bytes[:-5]
         
-        print(f"Receiving file {file_name}")
-        with open(temp_file_path, 'wb') as file:
-            while True:
-                chunk = client_socket.recv(BUFFER_SIZE)
-                if chunk == b'EOF':
-                    break
-                file.write(chunk)
-        
-        print(f"Received file {file_name} from sender with UUID {sender_uuid}")
+        file.write(file_bytes)
+        file.close()
+    
         client_socket.sendall(b'File received')
     finally:
+        print(f"Received file {file_name} from sender with UUID {sender_uuid}")
         client_socket.close()
-        print("Sender client disconnected")
 
 if __name__ == "__main__":
     if not os.path.exists(TEMP_FOLDER):
         os.makedirs(TEMP_FOLDER)
-        print(f"Created temporary folder: {TEMP_FOLDER}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind(('0.0.0.0', SERVER_PORT))
@@ -98,11 +101,10 @@ if __name__ == "__main__":
 
         while True:
             client_socket, addr = server_socket.accept()
-            print(f"New connection from {addr}")
             client_type = client_socket.recv(BUFFER_SIZE).decode()
-            print(f"Received client type: {client_type}")
+
             if client_type == 'sender':
-                threading.Thread(target=handle_sender, args=(client_socket,)).start()
+                handle_sender(client_socket)
             elif client_type == 'receiver':
                 threading.Thread(target=handle_client, args=(client_socket,)).start()
             else:
