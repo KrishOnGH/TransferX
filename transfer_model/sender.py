@@ -11,7 +11,7 @@ def send_file(Server, UUID, file_path):
     if not os.path.isfile(file_path):
         return({"message": "error"})
     else:
-        file_name = os.path.basename(file_path)
+        file_name = os.path.basename(file_path) + '(' + str(UUID) + ')'
         file_size = os.path.getsize(file_path)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
