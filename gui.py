@@ -1,25 +1,83 @@
 import os
 import sys
+import json
+import socket
 import random
 import customtkinter as ctk
-from transfer_model.sender import send_file, SERVER_PORT, IP
-from transfer_model.receiver import receive_file
 from PIL import Image, ImageTk
+from transfer_model.sender import send_file
+from transfer_model.receiver import receive_file
+
+preferences_file = os.path.join(os.path.dirname(__file__), 'preferences.json')
+default_preferences = {'Server IP': 'myowncloudserver.com', 'Server Port': 443}
+
+def loadPreferences():
+    if os.path.exists(preferences_file):
+        with open(preferences_file, 'r') as file:
+            preferences = json.load(file)
+            if not "Server IP" in preferences or not "Server Port":
+                preferences = default_preferences
+    else:
+        preferences = default_preferences
+
+    with open(preferences_file, 'w') as file:
+        json.dump(preferences, file, indent=4)
+    
+    return preferences
+
+preferences = loadPreferences()
+
+IP = preferences['Server IP']
+SERVER_PORT = int(preferences['Server Port'])
+
+def setPreference(prefKey, prefValue):
+    if os.path.exists(preferences_file):
+        with open(preferences_file, 'r') as file:
+            preferences = json.load(file)
+            if not "Server IP" in preferences or not "Server Port":
+                preferences = default_preferences
+    else:
+        preferences = default_preferences
+
+    preferences[prefKey] = prefValue
+
+    with open(preferences_file, 'w') as file:
+        json.dump(preferences, file, indent=4)
 
 def run_process():
     if len(sys.argv) > 1:
         file_path = sys.argv[1]
 
         if os.path.isfile(file_path):
-            UUID = random.randint(100000, 999999)
-            is_permanent_value = "True" if is_permanent_var.get() else "False"
-            status = send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path, is_permanent_value)
+            preferences = loadPreferences()
+            IP = preferences['Server IP']
+            SERVER_PORT = int(preferences['Server Port'])
 
             file_selected_label.destroy()
-            button.destroy()           
+            button.destroy()
             is_permanent_checkbox.destroy()
             header.place(relx=0.5, rely=0.475, anchor='center')
             result_label.place(relx=0.5, rely=0.525, anchor='center')     
+
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                try:
+                    s.connect((IP, SERVER_PORT))
+                except:
+                    result_label.configure(text=f"Incorrect Server (Change in settings)")
+                    return
+
+                s.sendall(b'checker')
+
+                answer = s.recv(4096).decode()
+
+                if answer != 'TransferX Server ACK':
+                    print(answer)
+                    result_label.configure(text=f"Incorrect Server (Change in settings)")
+                    return
+
+            UUID = random.randint(100000, 999999)
+            is_permanent_value = "True" if is_permanent_var.get() else "False"
+            status = send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path, is_permanent_value)
 
             if status['message'] == "error":
                 result_label.configure(text="Error")
@@ -46,14 +104,36 @@ def receive_process():
     UUID = uuid_entry.get()
     if len(UUID) == 0:
         return
-    status = receive_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path)
+
+    preferences = loadPreferences()
+    IP = preferences['Server IP']
+    SERVER_PORT = int(preferences['Server Port'])
 
     uuid_label.destroy()
     uuid_entry.destroy()
     receive_button.destroy()
     header.place(relx=0.5, rely=0.475, anchor='center')
     result_label.place(relx=0.5, rely=0.525, anchor='center')
-    
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.connect((IP, SERVER_PORT))
+        except:
+            result_label.configure(text=f"Incorrect Server (Change in settings)")
+            return
+
+        s.sendall(b'checker')
+
+        answer = s.recv(4096).decode()
+
+        if answer != 'TransferX Server ACK':
+            print(answer)
+            result_label.configure(text=f"Incorrect Server (Change in settings)")
+            return
+
+
+    status = receive_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path)
+
     if status['message'] == 'error':
         result_label.configure(text=f"{status['details']}")
     else:
@@ -93,6 +173,7 @@ settings_label = ctk.CTkLabel(app, image=settings_icon_image, text="")
 settings_label.place(x=10, y=10)
 
 def on_settings_click(event):
+    preferences = loadPreferences()
     settings_label.place_forget()
 
     settings_screen = ctk.CTkFrame(app, width=app.winfo_width(), height=app.winfo_height())
@@ -111,7 +192,9 @@ def on_settings_click(event):
     server_ip_label = ctk.CTkLabel(settings_screen, text="Server IP:", font=("Arial", 16))
     server_ip_label.place(relx=0.5, y=60, anchor="center")
 
-    server_ip_entry = ctk.CTkEntry(settings_screen, placeholder_text="Enter Server IP")
+    server_ip_entry = ctk.CTkEntry(settings_screen)
+    IP = preferences['Server IP']
+    server_ip_entry.insert(0, IP)
     server_ip_entry.place(relx=0.5, y=90, anchor="center")
 
     save_ip_button = ctk.CTkButton(settings_screen, text="Save", command=lambda: save_ip(server_ip_entry.get()))
@@ -121,18 +204,19 @@ def on_settings_click(event):
     server_port_label = ctk.CTkLabel(settings_screen, text="Server Port:", font=("Arial", 16))
     server_port_label.place(relx=0.5, y=170, anchor="center")
 
-    server_port_entry = ctk.CTkEntry(settings_screen, placeholder_text="Enter Server Port")
+    server_port_entry = ctk.CTkEntry(settings_screen)
+    SERVER_PORT = int(preferences['Server Port'])
+    server_port_entry.insert(0, str(SERVER_PORT))   
     server_port_entry.place(relx=0.5, y=200, anchor="center")
 
     save_port_button = ctk.CTkButton(settings_screen, text="Save", command=lambda: save_port(server_port_entry.get()))
     save_port_button.place(relx=0.5, y=240, anchor="center")
 
     def save_ip(ip):
-        print(f"Server IP: {ip}")
-        # Add code to handle saving the IP value
+        setPreference(f"Server IP", ip)
 
     def save_port(port):
-        print(f"Server Port: {port}")
+        setPreference("Server Port", port)    
 
     def close_settings_screen(event):
         settings_screen.destroy()

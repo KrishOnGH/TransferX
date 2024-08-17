@@ -97,6 +97,11 @@ def handle_sender(client_socket):
         print(f"Received file {file_name} from sender with UUID {sender_uuid}")
         client_socket.close()
 
+def handle_checkAlive(client_socket):
+    client_socket.sendall(b'TransferX Server ACK')
+    print('client checked')
+    client_socket.close()
+
 if __name__ == "__main__":
     if not os.path.exists(TEMP_FOLDER):
         os.makedirs(TEMP_FOLDER)
@@ -114,6 +119,8 @@ if __name__ == "__main__":
                 threading.Thread(target=handle_sender, args=(client_socket,)).start()
             elif client_type == 'receiver':
                 threading.Thread(target=handle_client, args=(client_socket,)).start()
+            elif client_type == 'checker':
+                threading.Thread(target=handle_checkAlive, args=(client_socket,)).start()
             else:
                 print(f"Unknown client type: {client_type}")
                 client_socket.close()
