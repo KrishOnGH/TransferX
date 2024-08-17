@@ -71,7 +71,6 @@ def run_process():
                 answer = s.recv(4096).decode()
 
                 if answer != 'TransferX Server ACK':
-                    print(answer)
                     result_label.configure(text=f"Incorrect Server (Change in settings)")
                     return
 
@@ -170,9 +169,9 @@ receive_button = ctk.CTkButton(app, text="Receive", command=receive_process)
 settings_icon_path = os.path.join(os.path.dirname(__file__), "icons", "settings.png")
 settings_icon_image = ImageTk.PhotoImage(Image.open(settings_icon_path).resize((30, 30)))
 settings_label = ctk.CTkLabel(app, image=settings_icon_image, text="")
-settings_label.place(x=10, y=10)
+settings_label.place(relx=0, x=40, y=12, anchor="ne")
 
-def on_settings_click(event):
+def settings_screen(event):
     preferences = loadPreferences()
     settings_label.place_forget()
 
@@ -220,17 +219,87 @@ def on_settings_click(event):
 
     def close_settings_screen(event):
         settings_screen.destroy()
-        settings_label.place(x=10, y=10)
+        settings_label.place(relx=0, x=40, y=12, anchor="ne")
 
     x_label.bind("<Button-1>", close_settings_screen)
 
     x_label.bind("<Enter>", lambda e: x_label.configure(cursor="hand2"))
     x_label.bind("<Leave>", lambda e: x_label.configure(cursor=""))
 
-settings_label.bind("<Button-1>", on_settings_click)
+settings_label.bind("<Button-1>", settings_screen)
 
 settings_label.bind("<Enter>", lambda e: settings_label.configure(cursor="hand2"))
 settings_label.bind("<Leave>", lambda e: settings_label.configure(cursor=""))
+
+database_icon_path = os.path.join(os.path.dirname(__file__), "icons", "database.png")
+database_icon_image = ImageTk.PhotoImage(Image.open(database_icon_path).resize((30, 30)))
+database_label = ctk.CTkLabel(app, image=database_icon_image, text="")
+database_label.place(relx=1.0, x=-40, y=12, anchor="ne")
+
+def database_screen(event):
+    database_label.place_forget()
+
+    database_screen = ctk.CTkFrame(app, width=app.winfo_width(), height=app.winfo_height())
+    database_screen.place(x=0, y=0)
+
+    preferences = loadPreferences()
+    IP = preferences['Server IP']
+    SERVER_PORT = int(preferences['Server Port'])
+    canConnect = True
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.connect((IP, SERVER_PORT))
+            s.sendall(b'checker')
+
+            answer = s.recv(4096).decode()
+
+            if answer != 'TransferX Server ACK':
+                result = ctk.CTkLabel(database_screen, text="Incorrect Server (Change in settings)", font=("Arial", 16))
+                result.place(relx=0.5, y=80, anchor="n")
+                canConnect = False
+
+        except:
+            canConnect = False
+            result = ctk.CTkLabel(database_screen, text="Incorrect Server (Change in settings)", font=("Arial", 16))
+            result.place(relx=0.5, y=80, anchor="n")
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            if canConnect:
+                s.connect((IP, SERVER_PORT))
+                s.sendall(b'dbdataquery')
+
+                dbData = json.loads(s.recv(1024).decode())
+
+                print('data:')
+                print(dbData)
+
+        except KeyError as e:
+            pass
+
+    database_screen_label = ctk.CTkLabel(database_screen, text="Database", font=("Arial", 24, "bold"))
+    database_screen_label.place(relx=0.5, y=20, anchor="n")
+
+    x_icon_path = os.path.join(os.path.dirname(__file__), "icons", "close.png")
+    x_icon_image = ImageTk.PhotoImage(Image.open(x_icon_path).resize((25, 25)))
+
+    x_label = ctk.CTkLabel(database_screen, image=x_icon_image, text="")
+    x_label.place(relx=1.0, x=-40, y=12, anchor="ne")
+
+    def close_database_screen(event):
+        database_screen.destroy()
+        database_label.place(relx=1.0, x=-40, y=12, anchor="ne")    
+
+    x_label.bind("<Button-1>", close_database_screen)
+
+    x_label.bind("<Enter>", lambda e: x_label.configure(cursor="hand2"))
+    x_label.bind("<Leave>", lambda e: x_label.configure(cursor=""))
+
+database_label.bind("<Button-1>", database_screen)
+
+database_label.bind("<Enter>", lambda e: database_label.configure(cursor="hand2"))
+database_label.bind("<Leave>", lambda e: database_label.configure(cursor=""))
 
 # Update labels
 if len(sys.argv) > 1:

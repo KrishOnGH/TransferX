@@ -99,7 +99,10 @@ def handle_sender(client_socket):
 
 def handle_checkAlive(client_socket):
     client_socket.sendall(b'TransferX Server ACK')
-    print('client checked')
+    client_socket.close()
+
+def handle_dbQuery(client_socket):
+    client_socket.sendall(json.dumps(load_uuids()).encode())
     client_socket.close()
 
 if __name__ == "__main__":
@@ -121,6 +124,8 @@ if __name__ == "__main__":
                 threading.Thread(target=handle_client, args=(client_socket,)).start()
             elif client_type == 'checker':
                 threading.Thread(target=handle_checkAlive, args=(client_socket,)).start()
+            elif client_type == 'dbdataquery':
+                threading.Thread(target=handle_dbQuery, args=(client_socket,)).start()
             else:
                 print(f"Unknown client type: {client_type}")
                 client_socket.close()
