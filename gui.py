@@ -274,7 +274,6 @@ def database_screen(event):
                 s.sendall(b'dbdataquery')
 
                 dbData = json.loads(s.recv(1024).decode())
-
                 for key, value in dbData.items():
                     frame_width = min(int(app.winfo_width() * 0.45), 600)
                     frame = ctk.CTkFrame(scrollable_frame, corner_radius=10, border_width=2, width=frame_width, height=120)
@@ -286,17 +285,36 @@ def database_screen(event):
                     filename_label = ctk.CTkLabel(frame, text=filename, 
                                                 font=("Arial", 16),
                                                 anchor="w")
-                    filename_label.pack(pady=(10, 0), padx=10, anchor="w")
+                    filename_label.place(x=10, y=10)
+
+                    delete_icon_path = os.path.join(os.path.dirname(__file__), "icons", "delete.png")
+                    delete_icon_image = ImageTk.PhotoImage(Image.open(delete_icon_path).resize((30, 30)))
+
+                    delete_label = ctk.CTkLabel(frame, image=delete_icon_image, text="")
+                    delete_label.place(relx=1.0, x=-30, y=10, anchor="ne")
 
                     uuid_label = ctk.CTkLabel(frame, text=f"UUID: {key}", 
                                             font=("Arial", 12),
                                             anchor="w")
-                    uuid_label.pack(pady=(5, 0), padx=10, anchor="w")
+                    uuid_label.place(x=10, y=40)
 
                     permanent_label = ctk.CTkLabel(frame, text=f"Permanent: {value['Permanent']}", 
                                                 font=("Arial", 12),
                                                 anchor="w")
-                    permanent_label.pack(pady=(5, 10), padx=10, anchor="w")
+                    permanent_label.place(x=10, y=60)
+
+                    def delete(event, key=key, frame=frame):
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                            s.connect((IP, SERVER_PORT))
+                            s.sendall(b'delete')
+                            s.recv(1024)
+                            s.sendall(str(key).encode())
+                            frame.destroy()
+
+                    delete_label.bind("<Button-1>", delete)
+
+                    delete_label.bind("<Enter>", lambda e, label=delete_label: label.configure(cursor="hand2"))
+                    delete_label.bind("<Leave>", lambda e, label=delete_label: label.configure(cursor=""))
 
         except KeyError as e:
             pass

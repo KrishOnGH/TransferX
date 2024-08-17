@@ -26,6 +26,7 @@ def handle_client(client_socket):
         client_socket.sendall(b'ACK')
         received_uuid = client_socket.recv(BUFFER_SIZE).decode()
         client_socket.sendall(b'ACK')
+        UUIDS = load_uuids()
 
         if received_uuid in UUIDS:
             file_name = UUIDS[received_uuid]['Filename']
@@ -69,6 +70,8 @@ def handle_sender(client_socket):
         client_socket.sendall(b'ACK')
         permanent = client_socket.recv(BUFFER_SIZE).decode()
 
+        UUIDS = load_uuids()
+
         UUIDS[sender_uuid] = {'Filename': file_name, 'Permanent': permanent}
         save_uuids(UUIDS)
 
@@ -105,6 +108,22 @@ def handle_dbQuery(client_socket):
     client_socket.sendall(json.dumps(load_uuids()).encode())
     client_socket.close()
 
+def handle_delete(client_socket):
+    client_socket.sendall(b'ACK')
+    UUID = client_socket.recv(BUFFER_SIZE).decode()
+
+    UUIDS = load_uuids()
+    if UUID in UUIDS:
+        filename = UUIDS[UUID]['Filename']
+        os.remove(os.path.join('temp_files', filename))
+        del UUIDS[UUID]
+        save_uuids(UUIDS)
+    else:
+        print(UUID)
+    
+    client_socket.close()
+    print(f"{filename} has been deleted manually.")
+
 if __name__ == "__main__":
     if not os.path.exists(TEMP_FOLDER):
         os.makedirs(TEMP_FOLDER)
@@ -126,6 +145,8 @@ if __name__ == "__main__":
                 threading.Thread(target=handle_checkAlive, args=(client_socket,)).start()
             elif client_type == 'dbdataquery':
                 threading.Thread(target=handle_dbQuery, args=(client_socket,)).start()
+            elif client_type == 'delete':
+                threading.Thread(target=handle_delete, args=(client_socket,)).start()
             else:
                 print(f"Unknown client type: {client_type}")
                 client_socket.close()
