@@ -242,6 +242,9 @@ def database_screen(event):
     database_screen = ctk.CTkFrame(app, width=app.winfo_width(), height=app.winfo_height())
     database_screen.place(x=0, y=0)
 
+    scrollable_frame = ctk.CTkScrollableFrame(database_screen, width=app.winfo_width(), height=app.winfo_height() - 80, fg_color="transparent")
+    scrollable_frame.place(x=0, y=60)
+
     preferences = loadPreferences()
     IP = preferences['Server IP']
     SERVER_PORT = int(preferences['Server Port'])
@@ -272,8 +275,28 @@ def database_screen(event):
 
                 dbData = json.loads(s.recv(1024).decode())
 
-                print('data:')
-                print(dbData)
+                for key, value in dbData.items():
+                    frame_width = min(int(app.winfo_width() * 0.45), 600)
+                    frame = ctk.CTkFrame(scrollable_frame, corner_radius=10, border_width=2, width=frame_width, height=120)
+                    frame.pack_propagate(False)
+                    frame.pack(pady=10, anchor="center")
+
+                    filename = value["Filename"][:-8] if len(value["Filename"]) > 8 else value["Filename"]
+
+                    filename_label = ctk.CTkLabel(frame, text=filename, 
+                                                font=("Arial", 16),
+                                                anchor="w")
+                    filename_label.pack(pady=(10, 0), padx=10, anchor="w")
+
+                    uuid_label = ctk.CTkLabel(frame, text=f"UUID: {key}", 
+                                            font=("Arial", 12),
+                                            anchor="w")
+                    uuid_label.pack(pady=(5, 0), padx=10, anchor="w")
+
+                    permanent_label = ctk.CTkLabel(frame, text=f"Permanent: {value['Permanent']}", 
+                                                font=("Arial", 12),
+                                                anchor="w")
+                    permanent_label.pack(pady=(5, 10), padx=10, anchor="w")
 
         except KeyError as e:
             pass

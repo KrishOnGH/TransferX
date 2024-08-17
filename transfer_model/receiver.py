@@ -42,3 +42,4 @@ def receive_file(Server, UUID, folder_path):
 
         else:
             return({"message": "error", 'details': 'Incorrect UUID'})
+        
