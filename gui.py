@@ -4,6 +4,7 @@ import random
 import customtkinter as ctk
 from transfer_model.sender import send_file, SERVER_PORT, IP
 from transfer_model.receiver import receive_file
+from PIL import Image, ImageTk
 
 def run_process():
     if len(sys.argv) > 1:
@@ -85,6 +86,67 @@ result_label.place(relx=0.5, rely=0.55, anchor='center')
 uuid_label = ctk.CTkLabel(app, text="Receive File - Enter UUID:", font=default_font)
 uuid_entry = ctk.CTkEntry(app, placeholder_text="Enter UUID")
 receive_button = ctk.CTkButton(app, text="Receive", command=receive_process)
+
+settings_icon_path = os.path.join(os.path.dirname(__file__), "icons", "settings.png")
+settings_icon_image = ImageTk.PhotoImage(Image.open(settings_icon_path).resize((30, 30)))
+settings_label = ctk.CTkLabel(app, image=settings_icon_image, text="")
+settings_label.place(x=10, y=10)
+
+def on_settings_click(event):
+    settings_label.place_forget()
+
+    settings_screen = ctk.CTkFrame(app, width=app.winfo_width(), height=app.winfo_height())
+    settings_screen.place(x=0, y=0)
+
+    settings_screen_label = ctk.CTkLabel(settings_screen, text="Settings", font=("Arial", 24, "bold"))
+    settings_screen_label.place(relx=0.5, y=15, anchor="n")
+
+    x_icon_path = os.path.join(os.path.dirname(__file__), "icons", "close.png")
+    x_icon_image = ImageTk.PhotoImage(Image.open(x_icon_path).resize((25, 25)))
+
+    x_label = ctk.CTkLabel(settings_screen, image=x_icon_image, text="")
+    x_label.place(relx=1.0, x=-40, y=12, anchor="ne")
+
+    # Server IP input
+    server_ip_label = ctk.CTkLabel(settings_screen, text="Server IP:", font=("Arial", 16))
+    server_ip_label.place(relx=0.5, y=60, anchor="center")
+
+    server_ip_entry = ctk.CTkEntry(settings_screen, placeholder_text="Enter Server IP")
+    server_ip_entry.place(relx=0.5, y=90, anchor="center")
+
+    save_ip_button = ctk.CTkButton(settings_screen, text="Save", command=lambda: save_ip(server_ip_entry.get()))
+    save_ip_button.place(relx=0.5, y=130, anchor="center")
+
+    # Server Port input
+    server_port_label = ctk.CTkLabel(settings_screen, text="Server Port:", font=("Arial", 16))
+    server_port_label.place(relx=0.5, y=170, anchor="center")
+
+    server_port_entry = ctk.CTkEntry(settings_screen, placeholder_text="Enter Server Port")
+    server_port_entry.place(relx=0.5, y=200, anchor="center")
+
+    save_port_button = ctk.CTkButton(settings_screen, text="Save", command=lambda: save_port(server_port_entry.get()))
+    save_port_button.place(relx=0.5, y=240, anchor="center")
+
+    def save_ip(ip):
+        print(f"Server IP: {ip}")
+        # Add code to handle saving the IP value
+
+    def save_port(port):
+        print(f"Server Port: {port}")
+
+    def close_settings_screen(event):
+        settings_screen.destroy()
+        settings_label.place(x=10, y=10)
+
+    x_label.bind("<Button-1>", close_settings_screen)
+
+    x_label.bind("<Enter>", lambda e: x_label.configure(cursor="hand2"))
+    x_label.bind("<Leave>", lambda e: x_label.configure(cursor=""))
+
+settings_label.bind("<Button-1>", on_settings_click)
+
+settings_label.bind("<Enter>", lambda e: settings_label.configure(cursor="hand2"))
+settings_label.bind("<Leave>", lambda e: settings_label.configure(cursor=""))
 
 # Update labels
 if len(sys.argv) > 1:
