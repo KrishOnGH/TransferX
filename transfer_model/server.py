@@ -6,8 +6,8 @@ import json
 # Constants
 BUFFER_SIZE = 4096
 UUIDS_FILE = 'uuids.json'
-SERVER_PORT = 65432
 TEMP_FOLDER = 'temp_files'
+SERVER_PORT = 65432
 
 def load_uuids():
     if os.path.exists(UUIDS_FILE):
@@ -123,6 +123,9 @@ def handle_delete(client_socket):
     
     client_socket.close()
     print(f"{filename} has been deleted manually.")
+
+def handle_vitalsQuery(client_socket):
+    client_socket.sendall(json.dumps({"Clients Connected": 1}).encode())
 
 if __name__ == "__main__":
     if not os.path.exists(TEMP_FOLDER):
