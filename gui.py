@@ -9,13 +9,13 @@ from transfer_model.sender import send_file
 from transfer_model.receiver import receive_file
 
 preferences_file = os.path.join(os.path.dirname(__file__), 'preferences.json')
-default_preferences = {'Server IP': 'myowncloudserver.com', 'Server Port': 443}
+default_preferences = {'Server IP': 'myowncloudserver.com', 'Server Port': 443, 'Encryption Key': 91827}
 
 def loadPreferences():
     if os.path.exists(preferences_file):
         with open(preferences_file, 'r') as file:
             preferences = json.load(file)
-            if not "Server IP" in preferences or not "Server Port":
+            if not "Server IP" in preferences or not "Server Port" in preferences or not "Encryption Key" in preferences:
                 preferences = default_preferences
     else:
         preferences = default_preferences
@@ -29,12 +29,13 @@ preferences = loadPreferences()
 
 IP = preferences['Server IP']
 SERVER_PORT = int(preferences['Server Port'])
+ENCRYPTION_KEY = int(preferences['Encryption Key'])
 
 def setPreference(prefKey, prefValue):
     if os.path.exists(preferences_file):
         with open(preferences_file, 'r') as file:
             preferences = json.load(file)
-            if not "Server IP" in preferences or not "Server Port":
+            if not "Server IP" in preferences or not "Server Port" in preferences or not "Encryption Key" in preferences:
                 preferences = default_preferences
     else:
         preferences = default_preferences
@@ -51,7 +52,8 @@ def run_process():
         if os.path.isfile(file_path):
             preferences = loadPreferences()
             IP = preferences['Server IP']
-            SERVER_PORT = int(preferences['Server Port'])
+            SERVER_PORT = int(preferences['Server Port'])       
+            ENCRYPTION_KEY = int(preferences['Encryption Key'])
 
             file_selected_label.destroy()
             button.destroy()
@@ -76,7 +78,7 @@ def run_process():
 
             UUID = random.randint(100000, 999999)
             is_permanent_value = "True" if is_permanent_var.get() else "False"
-            status = send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path, is_permanent_value)
+            status = send_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path, is_permanent_value, ENCRYPTION_KEY)
 
             if status['message'] == "error":
                 result_label.configure(text="Error")
@@ -107,6 +109,7 @@ def receive_process():
     preferences = loadPreferences()
     IP = preferences['Server IP']
     SERVER_PORT = int(preferences['Server Port'])
+    ENCRYPTION_KEY = int(preferences['Encryption Key'])
 
     uuid_label.destroy()
     uuid_entry.destroy()
@@ -130,8 +133,7 @@ def receive_process():
             result_label.configure(text=f"Incorrect Server (Change in settings)")
             return
 
-
-    status = receive_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path)
+    status = receive_file({"IP": IP, "Port": SERVER_PORT}, UUID, file_path, ENCRYPTION_KEY)
 
     if status['message'] == 'error':
         result_label.configure(text=f"{status['details']}")
@@ -211,11 +213,26 @@ def settings_screen(event):
     save_port_button = ctk.CTkButton(settings_screen, text="Save", command=lambda: save_port(server_port_entry.get()))
     save_port_button.place(relx=0.5, y=240, anchor="center")
 
+    # Encryption Key input
+    encryption_key_label = ctk.CTkLabel(settings_screen, text="Encryption Key:", font=("Arial", 16))
+    encryption_key_label.place(relx=0.5, y=280, anchor="center")
+
+    encryption_key_entry = ctk.CTkEntry(settings_screen)
+    ENCRYPTION_KEY = int(preferences['Encryption Key'])
+    encryption_key_entry.insert(0, str(ENCRYPTION_KEY))   
+    encryption_key_entry.place(relx=0.5, y=310, anchor="center")
+
+    save_key_button = ctk.CTkButton(settings_screen, text="Save", command=lambda: save_key(encryption_key_entry.get()))
+    save_key_button.place(relx=0.5, y=350, anchor="center")
+
     def save_ip(ip):
         setPreference(f"Server IP", ip)
 
     def save_port(port):
         setPreference("Server Port", port)    
+
+    def save_key(key):
+        setPreference("Encryption Key", key)
 
     def close_settings_screen(event):
         settings_screen.destroy()

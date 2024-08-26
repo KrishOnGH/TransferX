@@ -7,7 +7,7 @@ BUFFER_SIZE = 4096
 IP = '192.168.29.80'
 SERVER_PORT = 65432
 
-def receive_file(Server, UUID, folder_path):
+def receive_file(Server, UUID, folder_path, encryption_key):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((Server['IP'], Server['Port']))
 
@@ -22,9 +22,12 @@ def receive_file(Server, UUID, folder_path):
             file_name = response
             s.sendall(b'Ready to receive')
 
+            key_bytes = encryption_key.to_bytes((encryption_key.bit_length() + 7) // 8, byteorder='big')
+
             file = open(os.path.join(folder_path, file_name[:-8]), "wb")
             file_bytes = b''
             done = False
+            key_index = 0
 
             while not done:
                 data = s.recv(BUFFER_SIZE)
@@ -34,7 +37,10 @@ def receive_file(Server, UUID, folder_path):
                     done = True
                     file_bytes = file_bytes[:-5]
 
-            file.write(file_bytes)
+            # Decrypt the received data
+            decrypted_bytes = bytes(b ^ key_bytes[key_index % len(key_bytes)] for key_index, b in enumerate(file_bytes))
+
+            file.write(decrypted_bytes)
             file.close()
 
             s.sendall(b'complete')

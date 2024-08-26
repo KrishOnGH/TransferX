@@ -1,4 +1,5 @@
 {
     "Server IP": "localhost",
-    "Server Port": "65432"
+    "Server Port": "65432",
+    "Encryption Key": "91827"
 }
