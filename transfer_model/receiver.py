@@ -20,11 +20,23 @@ def receive_file(Server, UUID, folder_path, encryption_key):
         response = s.recv(BUFFER_SIZE).decode()
         if response != 'UUID not found' and response != 'File not found':
             file_name = response
+            file_name = file_name[:-8]
+            base_file_name = file_name
+            file_name_is_available = False
+            name_check_iteration = 0
+
+            while not file_name_is_available:
+                if os.path.exists(os.path.join(folder_path, file_name)):
+                    name_check_iteration += 1
+                    file_name = str(base_file_name.split(".")[0]) + ' (' + str(name_check_iteration) + ')' + '.' + base_file_name.split('.')[1]
+                else:
+                    file_name_is_available = True
+
             s.sendall(b'Ready to receive')
 
             key_bytes = encryption_key.to_bytes((encryption_key.bit_length() + 7) // 8, byteorder='big')
 
-            file = open(os.path.join(folder_path, file_name[:-8]), "wb")
+            file = open(os.path.join(folder_path, file_name), "wb")
             file_bytes = b''
             done = False
             key_index = 0

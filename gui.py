@@ -145,6 +145,14 @@ app = ctk.CTk()
 app.title("TransferX")
 app.after(0, lambda: app.state('zoomed'))
 
+icon_path = os.path.join(os.path.dirname(__file__), "icons", "settings.png")
+try:
+    icon = Image.open(icon_path)
+    icon = ImageTk.PhotoImage(icon)
+    app.iconphoto(False, icon)
+except Exception as e:
+    print(f"Failed to load icon: {e}")
+
 header_font = ("Arial", 24, "bold")
 default_font = ("Arial", 16)
 
