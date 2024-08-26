@@ -2,10 +2,12 @@ import socket
 import threading
 import os
 import json
+import datetime
 
 # Constants
 BUFFER_SIZE = 4096
 UUIDS_FILE = 'uuids.json'
+SERVER_DATA_FILE = 'serverdata.json'
 TEMP_FOLDER = 'temp_files'
 SERVER_PORT = 65432
 
@@ -24,9 +26,32 @@ UUIDS = load_uuids()
 def handle_client(client_socket):
     try:
         client_socket.sendall(b'ACK')
+        signature = client_socket.recv(BUFFER_SIZE).decode()
+        client_socket.sendall(b'ACK')
         received_uuid = client_socket.recv(BUFFER_SIZE).decode()
         client_socket.sendall(b'ACK')
         UUIDS = load_uuids()
+
+        if os.path.exists(SERVER_DATA_FILE):
+            with open(SERVER_DATA_FILE, 'r') as f:
+                server_data = json.load(f)
+        else:
+            server_data = {"Clients": {}}
+
+        if signature in server_data['Clients']:
+            user_data = server_data['Clients'][signature]
+            user_data['Last Date Active'] = str(datetime.date.today())
+            user_data['Files Received'] += 1
+            server_data['Clients'][signature] = user_data
+        else:
+            server_data['Clients'][signature] = {
+                'Last Date Active': str(datetime.date.today()),
+                'Files Sent': 0,
+                'Files Received': 1
+            }
+
+        with open(SERVER_DATA_FILE, 'w') as f:
+            json.dump(server_data, f, indent=4)
 
         if received_uuid in UUIDS:
             file_name = UUIDS[received_uuid]['Filename']
@@ -62,6 +87,8 @@ def handle_client(client_socket):
 def handle_sender(client_socket):
     try:
         client_socket.sendall(b'ACK')
+        signature = client_socket.recv(BUFFER_SIZE).decode()
+        client_socket.sendall(b'ACK')
         sender_uuid = client_socket.recv(BUFFER_SIZE).decode()
         client_socket.sendall(b'ACK')
         file_name = client_socket.recv(BUFFER_SIZE).decode()
@@ -69,6 +96,27 @@ def handle_sender(client_socket):
         file_size = client_socket.recv(BUFFER_SIZE).decode()
         client_socket.sendall(b'ACK')
         permanent = client_socket.recv(BUFFER_SIZE).decode()
+
+        if os.path.exists(SERVER_DATA_FILE):
+            with open(SERVER_DATA_FILE, 'r') as f:
+                server_data = json.load(f)
+        else:
+            server_data = {"Clients": {}}
+
+        if signature in server_data['Clients']:
+            user_data = server_data['Clients'][signature]
+            user_data['Last Date Active'] = str(datetime.date.today())
+            user_data['Files Sent'] += 1
+            server_data['Clients'][signature] = user_data
+        else:
+            server_data['Clients'][signature] = {
+                'Last Date Active': str(datetime.date.today()),
+                'Files Sent': 1,
+                'Files Received': 0
+            }
+
+        with open(SERVER_DATA_FILE, 'w') as f:
+            json.dump(server_data, f, indent=4)
 
         UUIDS = load_uuids()
 

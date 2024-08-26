@@ -7,7 +7,7 @@ BUFFER_SIZE = 4096
 IP = '127.0.0.1'
 SERVER_PORT = 65432
 
-def send_file(Server, UUID, file_path, permanent, encryption_key):
+def send_file(Server, UUID, file_path, permanent, encryption_key, signature):
     if not os.path.isfile(file_path):
         return({"message": "error"})
     else:
@@ -19,6 +19,9 @@ def send_file(Server, UUID, file_path, permanent, encryption_key):
 
         s.sendall(b'sender')
         s.recv(BUFFER_SIZE)  # Wait for acknowledgment
+
+        s.sendall(str(signature).encode())
+        s.recv(BUFFER_SIZE) # Wait for acknowledgement
 
         s.sendall(str(UUID).encode())
         s.recv(BUFFER_SIZE)  # Wait for acknowledgment
