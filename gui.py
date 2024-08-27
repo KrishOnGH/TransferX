@@ -149,12 +149,6 @@ app.title("TransferX")
 app.after(0, lambda: app.state('zoomed'))
 
 icon_path = os.path.join(os.path.dirname(__file__), "icons", "settings.png")
-try:
-    icon = Image.open(icon_path)
-    icon = ImageTk.PhotoImage(icon)
-    app.iconphoto(False, icon)
-except Exception as e:
-    print(f"Failed to load icon: {e}")
 
 header_font = ("Arial", 24, "bold")
 default_font = ("Arial", 16)
@@ -319,9 +313,13 @@ def database_screen(event):
                 s.sendall(b'dbdataquery')
 
                 dbData = json.loads(s.recv(1024).decode())
+                if len(dbData) == 0:
+                    result = ctk.CTkLabel(database_screen, text="No items stored", font=("Arial", 16))
+                    result.place(relx=0.5, y=80, anchor="n")
+
                 for key, value in dbData.items():
                     frame_width = min(int(app.winfo_width() * 0.45), 600)
-                    frame = ctk.CTkFrame(scrollable_frame, corner_radius=10, border_width=2, width=frame_width, height=120)
+                    frame = ctk.CTkFrame(scrollable_frame, corner_radius=10, border_width=2, width=frame_width, height=140)
                     frame.pack_propagate(False)
                     frame.pack(pady=10, anchor="center")
 
@@ -347,6 +345,11 @@ def database_screen(event):
                                                 font=("Arial", 12),
                                                 anchor="w")
                     permanent_label.place(x=10, y=60)
+
+                    date_label = ctk.CTkLabel(frame, text=f"Date Stored: {value['Date']}", 
+                                                font=("Arial", 12),
+                                                anchor="w")
+                    date_label.place(x=10, y=80)
 
                     def delete(event, key=key, frame=frame):
                         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -394,12 +397,24 @@ if len(sys.argv) > 1:
     if os.path.isfile(file_path):
         header.configure(text="Send File")
         file_selected_label.configure(text=f"{os.path.basename(file_path)} is selected")
+        try:
+            icon = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icons', 'send.png'))
+            icon = ImageTk.PhotoImage(icon)
+            app.after(201, lambda :app.wm_iconphoto(False, icon))
+        except Exception as e:
+            print(f"Failed to load icon: {e}")
 
     elif os.path.isdir(file_path):
         is_permanent_checkbox.destroy()
         button.place(relx=0.5, rely=0.5, anchor='center')
         header.configure(text="Receive File")
         file_selected_label.configure(text=f"{os.path.basename(file_path)} is selected")
+        try:
+            icon = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icons', 'receive.png'))
+            icon = ImageTk.PhotoImage(icon)
+            app.after(201, lambda :app.wm_iconphoto(False, icon))
+        except Exception as e:
+            print(f"Failed to load icon: {e}")
 
     else:
         file_selected_label.configure(text="The provided path is neither a file nor a folder.")
