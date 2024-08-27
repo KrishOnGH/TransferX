@@ -2,7 +2,9 @@ import socket
 import threading
 import os
 import json
+import shutil
 import datetime
+from dateutil import parser
 
 # Constants
 BUFFER_SIZE = 4096
@@ -41,17 +43,12 @@ def handle_client(client_socket):
         if signature in server_data['Clients']:
             user_data = server_data['Clients'][signature]
             user_data['Last Date Active'] = str(datetime.date.today())
-            user_data['Files Received'] += 1
-            server_data['Clients'][signature] = user_data
         else:
-            server_data['Clients'][signature] = {
+            user_data = {
                 'Last Date Active': str(datetime.date.today()),
                 'Files Sent': 0,
-                'Files Received': 1
+                'Files Received': 0
             }
-
-        with open(SERVER_DATA_FILE, 'w') as f:
-            json.dump(server_data, f, indent=4)
 
         if received_uuid in UUIDS:
             file_name = UUIDS[received_uuid]['Filename']
@@ -70,6 +67,11 @@ def handle_client(client_socket):
                 client_socket.sendall(b'<EOF>')
 
                 client_socket.recv(BUFFER_SIZE) # Wait for acknowledgement
+                
+                user_data['Files Received'] += 1    
+                server_data['Clients'][signature] = user_data
+                with open(SERVER_DATA_FILE, 'w') as f:
+                    json.dump(server_data, f, indent=4)
 
                 # Remove the temporary file after sending
                 if UUIDS[received_uuid]['Permanent'] == "False":
@@ -106,21 +108,16 @@ def handle_sender(client_socket):
         if signature in server_data['Clients']:
             user_data = server_data['Clients'][signature]
             user_data['Last Date Active'] = str(datetime.date.today())
-            user_data['Files Sent'] += 1
-            server_data['Clients'][signature] = user_data
         else:
             server_data['Clients'][signature] = {
                 'Last Date Active': str(datetime.date.today()),
-                'Files Sent': 1,
+                'Files Sent': 0,
                 'Files Received': 0
             }
 
-        with open(SERVER_DATA_FILE, 'w') as f:
-            json.dump(server_data, f, indent=4)
-
         UUIDS = load_uuids()
 
-        UUIDS[sender_uuid] = {'Filename': file_name, 'Permanent': permanent}
+        UUIDS[sender_uuid] = {'Filename': file_name, 'Permanent': permanent, 'Date': str(datetime.date.today())}
         save_uuids(UUIDS)
 
         temp_file_path = os.path.join(TEMP_FOLDER, file_name)
@@ -143,6 +140,11 @@ def handle_sender(client_socket):
         file.close()
     
         client_socket.sendall(b'File received')
+
+        user_data['Files Sent'] += 1
+        server_data['Clients'][signature] = user_data
+        with open(SERVER_DATA_FILE, 'w') as f:
+            json.dump(server_data, f, indent=4)
 
     finally:
         print(f"Received file {file_name} from sender with UUID {sender_uuid}")
@@ -173,7 +175,36 @@ def handle_delete(client_socket):
     print(f"{filename} has been deleted manually.")
 
 def handle_vitalsQuery(client_socket):
-    client_socket.sendall(json.dumps({"Clients Connected": 1}).encode())
+    if os.path.exists(SERVER_DATA_FILE):
+        with open(SERVER_DATA_FILE, 'r') as f:
+            server_data = json.load(f)
+    else:
+        server_data = {"Clients": {}}
+
+    clients = server_data['Clients']
+    numClients = len(clients)
+    numActiveClients = 0
+
+    for clientSignature in clients:
+        client = clients[clientSignature]
+        if datetime.date.today() - parser.parse(client["Last Date Active"]).date() <= datetime.timedelta(days=7):
+            numActiveClients += 1
+
+    UUIDS = load_uuids()
+    numFiles = len(UUIDS)
+    numRecentFiles = 0
+
+    for uuid in UUIDS:
+        date_stored = UUIDS[uuid]['Date']
+        if datetime.date.today() - parser.parse(date_stored).date() <= datetime.timedelta(days=30):
+            numRecentFiles += 1
+
+    total, used, free = shutil.disk_usage(TEMP_FOLDER)
+
+    used = used / (1024 ** 3)
+    free = free / (1024 ** 3)
+    
+    client_socket.sendall(json.dumps({"Clients Connected": numClients, "Active Clients": numActiveClients, "Files Stored": numFiles, "Recent Files": numRecentFiles, "GB Used": used, "GB Remaining": free}).encode())
 
 if __name__ == "__main__":
     if not os.path.exists(TEMP_FOLDER):
