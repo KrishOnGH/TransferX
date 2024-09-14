@@ -1,3 +1,7 @@
+[![Cover](https://github.com/KrishOnGH/TransferX/blob/1377884c155288daee2e5d847d61bdfaea7f8ce3/image.png)](https://www.loom.com/share/ea2d707a177545278f368d504cfdf9a0?sid=0678ed59-366e-4728-b28a-f1c62f4d11a7)
+
+(Above Video is a Loom Link, Click on it)
+
 # TransferX
 
 TransferX is a tool that allows users to easily transfer files between computers anywhere in the world. It works for both Mac and Windows (Mac support not guaranteed) if all dependencies are downloaded.
